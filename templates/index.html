@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Success Mate - Study Abroad Chatbot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Roboto, sans-serif;
+    }
+
+    /* --- FLOATING CHAT ICON --- */
+    #chat-widget {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      height: 60px;
+      width: 60px;
+      background: #0077b6 url('https://cdn-icons-png.flaticon.com/512/2950/2950651.png') no-repeat center;
+      background-size: 60%;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 9999;
+      transition: transform 0.3s ease;
+    }
+    #chat-widget:hover {
+      transform: scale(1.1);
+    }
+
+    /* --- FULLSCREEN CHAT POPUP --- */
+    #chat-popup {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(255, 255, 255, 0.9);
+      z-index: 9998;
+      animation: fadeIn 0.35s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    #particles-js {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+    }
+
+    .chat-container {
+      position: relative;
+      width: 95%;
+      max-width: 700px;
+      height: 85vh;
+      margin: 5vh auto;
+      background-color: #ffffffee;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #0077b6;
+      backdrop-filter: blur(6px);
+      z-index: 2;
+    }
+
+    .chat-header {
+      background-color: #0077b6;
+      color: #ffcc00;
+      padding: 18px 20px;
+      font-size: 1.6rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .chat-box {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .message {
+      margin: 6px 0;
+      padding: 14px 18px;
+      border-radius: 18px;
+      max-width: 85%;
+      line-height: 1.6;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeInUp 0.25s forwards;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    @keyframes fadeInUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .user-message {
+      background-color: #ffa500;
+      color: white;
+      align-self: flex-end;
+      text-align: right;
+    }
+
+    .bot-message {
+      background-color: #0077b6;
+      color: white;
+      position: relative;
+      padding-left: 45px;
+      text-align: left;
+    }
+
+    .bot-message::before {
+      content: "🎓";
+      position: absolute;
+      left: 15px; top: 14px;
+      font-size: 20px;
+    }
+
+    .chat-input {
+      display: flex;
+      border-top: 2px solid #0077b6;
+      padding: 10px;
+      background-color: #f7f9fa;
+    }
+
+    .chat-input textarea {
+      flex-grow: 1;
+      padding: 12px 15px;
+      font-size: 1rem;
+      border: none;
+      outline: none;
+      resize: none;
+      border-radius: 10px;
+      max-height: 120px;
+      overflow-y: auto;
+      background-color: #ffffff;
+      border: 1px solid #ccc;
+    }
+
+    .chat-input button {
+      background-color: #0077b6;
+      color: white;
+      padding: 0 25px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+
+    .chat-input button:hover {
+      background-color: #005f87;
+    }
+
+    .faq-list {
+      list-style: none;
+      padding: 0;
+      margin-top: 10px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .faq-list li {
+      background-color: #ffa500;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .faq-list li:hover {
+      background-color: #e68a00;
+    }
+
+    .typing-logo {
+      font-size: 20px;
+      margin-right: 6px;
+      animation: rotate 1.5s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes rotate {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Close Button */
+    .close-btn {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 24px;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .close-btn:hover {
+      color: #ffd700;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Floating Button -->
+<div id="chat-widget" onclick="toggleChat()"></div>
+
+<!-- Fullscreen Popup -->
+<div id="chat-popup">
+  <div id="particles-js"></div>
+  <div class="chat-container">
+    <div class="chat-header">
+      🎓 Success Mate - Virtual Assistant
+      <span class="close-btn" onclick="toggleChat()">×</span>
+    </div>
+    <div class="chat-box" id="chat-box">
+      <div class="bot-message message">
+        Hello! I'm Success Mate, your smart study abroad assistant. How may I help you today?
+        <ul class="faq-list">
+          <li onclick="sendQuickQuestion('How can I book an appointment?')">📅 Book an appointment</li>
+          <li onclick="sendQuickQuestion('Which countries can I study in?')">🌍 Study destinations</li>
+          <li onclick="sendQuickQuestion('Do you help with scholarships?')">🎓 Scholarships support</li>
+          <li onclick="sendQuickQuestion('What documents are required?')">📄 Required documents</li>
+          <li onclick="sendQuickQuestion('I want to convert my percentage to CGPA')">📊 Convert percentage to CGPA</li>
+        </ul>
+      </div>
+    </div>
+    <div class="chat-input">
+      <textarea id="user-input" rows="1" placeholder="Type your message here..." oninput="autoResize(this)"></textarea>
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleChat() {
+    const popup = document.getElementById("chat-popup");
+    popup.style.display = (popup.style.display === "block") ? "none" : "block";
+  }
+
+  particlesJS('particles-js', {
+    particles: {
+      number: { value: 60, density: { enable: true, value_area: 800 } },
+      color: { value: "#0077b6" },
+      shape: { type: "circle" },
+      opacity: { value: 0.2 },
+      size: { value: 3 },
+      line_linked: {
+        enable: true,
+        distance: 120,
+        color: "#0077b6",
+        opacity: 0.15,
+        width: 1
+      },
+      move: { enable: true, speed: 2, out_mode: "bounce" }
+    },
+    interactivity: {
+      events: {
+        onhover: { enable: true, mode: "grab" },
+        onclick: { enable: true, mode: "push" }
+      },
+      modes: {
+        grab: { distance: 150, line_linked: { opacity: 0.4 } },
+        push: { particles_nb: 4 }
+      }
+    },
+    retina_detect: true
+  });
+
+  function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  }
+
+  function sendQuickQuestion(text) {
+    const userInput = document.getElementById("user-input");
+    userInput.value = text;
+    autoResize(userInput);
+    sendMessage();
+  }
+
+  async function sendMessage() {
+    const textarea = document.getElementById("user-input");
+    const chatBox = document.getElementById("chat-box");
+    const text = textarea.value.trim();
+    if (!text) return;
+
+    const userMsg = document.createElement("div");
+    userMsg.className = "message user-message";
+    userMsg.innerText = text;
+    chatBox.appendChild(userMsg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    textarea.value = "";
+    autoResize(textarea);
+
+    const typingBubble = document.createElement("div");
+    typingBubble.className = "message bot-message";
+    typingBubble.innerHTML = `<span class="typing-logo">🌐</span>Typing...`;
+    chatBox.appendChild(typingBubble);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    await new Promise(r => setTimeout(r, Math.min(1500, text.length * 40)));
+
+    try {
+      const resp = await fetch("/get?msg=" + encodeURIComponent(text));
+      const data = await resp.text();
+      typingBubble.remove();
+
+      const botMsg = document.createElement("div");
+      botMsg.className = "message bot-message";
+      botMsg.innerHTML = data.replace(/\n/g, "<br>");
+      chatBox.appendChild(botMsg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    } catch {
+      typingBubble.textContent = "Sorry, something went wrong.";
+    }
+  }
+
+  document.getElementById("user-input").addEventListener("keydown", e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    autoResize(document.getElementById("user-input"));
+  });
+</script>
+
+</body>
+</html>
